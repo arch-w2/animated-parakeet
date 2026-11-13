@@ -1,0 +1,96 @@
+-- ========================================================
+-- MONITOR ALBAÑIL V2: DETECTOR DE LÍNEAS CON FALLA (DELTA)
+-- ========================================================
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+
+-- Función para pintar el cartel tosco estilo obra
+local function mostrarCartelAlbañil(lineaError)
+    local playerGui = localPlayer:WaitForChild("PlayerGui")
+    
+    if playerGui:FindFirstChild("CartelAlbañilCaida") then
+        return -- Si ya hay un aviso en pantalla, no encimar otro
+    end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "CartelAlbañilCaida"
+    screenGui.Parent = playerGui
+    
+    -- Cuadro Naranja Obra
+    local fondo = Instance.new("Frame")
+    fondo.Size = UDim2.new(0, 520, 0, 180)
+    fondo.Position = UDim2.new(0.5, -260, 0.3, -90)
+    fondo.BackgroundColor3 = Color3.fromRGB(255, 68, 0) -- Naranja de peligro
+    fondo.BorderSizePixel = 6
+    fondo.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    fondo.Parent = screenGui
+    
+    local titulo = Instance.new("TextLabel")
+    titulo.Size = UDim2.new(1, 0, 0.25, 0)
+    titulo.Text = "⚠ ¡DERRUMBE EN EL CÓDIGO, JEFE! ⚠"
+    titulo.Font = Enum.Font.FredokaOne
+    titulo.TextSize = 22
+    titulo.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titulo.TextStrokeTransparency = 0
+    titulo.BackgroundTransparency = 1
+    titulo.Parent = fondo
+    
+    local textoCuerpo = Instance.new("TextLabel")
+    textoCuerpo.Size = UDim2.new(1, -20, 0.75, 0)
+    textoCuerpo.Position = UDim2.new(0, 10, 0.25, 0)
+    
+    -- TEXTO EXACTO QUE PEDISTE CON LA LÍNEA DEL EXPLOIT
+    textoCuerpo.Text = "LA LÍNEA " .. tostring(lineaError) .. " ESTÁ CAUSANDO EL ERROR ASÍ QUE VAMOS PA' ABAJO MAESTRO"
+    
+    textoCuerpo.Font = Enum.Font.LuckiestGuy
+    textoCuerpo.TextSize = 22
+    textoCuerpo.TextColor3 = Color3.fromRGB(255, 255, 0) -- Amarillo Tráfico
+    textoCuerpo.TextWrapped = true
+    textoCuerpo.TextStrokeTransparency = 0
+    textoCuerpo.BackgroundTransparency = 1
+    textoCuerpo.Parent = fondo
+    
+    task.wait(5)
+    if screenGui then screenGui:Destroy() end
+end
+
+-- Bucle que vigila la gravedad de tu personaje
+RunService.Heartbeat:Connect(function()
+    local char = localPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local rootPart = char.HumanoidRootPart
+        
+        -- Si vas en picada hacia abajo (Velocidad Y menor a -65)
+        if rootPart.AssemblyLinearVelocity.Y < -65 then
+            
+            -- Rastreamos la pila de llamadas del script que se está ejecutando actualmente
+            local nivelDePila = 2
+            local lineaEncontrada = "DESCONOCIDA (SCRIPT EXTERNO)"
+            
+            while true do
+                -- debug.info analiza el hilo actual para ver qué línea se quedó colgada moviendo el personaje
+                local exito, linea, fuente = pcall(function()
+                    return debug.info(nivelDePila, "lS")
+                end)
+                
+                if not exito or not linea then break end
+                
+                -- Si viene de un script inyectado (suele llamarse [string "..."] o similar)
+                if fuente and (fuente:match("string") or fuente:match("Executor") or linea > 0) then
+                    lineaEncontrada = tostring(linea)
+                    break
+                end
+                nivelDePila = nivelDePila + 1
+            end
+            
+            -- Lanza el cartel tosco de inmediato
+            task.spawn(function()
+                mostrarCartelAlbañil(lineaEncontrada)
+            end)
+        end
+    end
+end)
+
+print("👷 Detector de líneas dañado activo. Esperando falla de script...")
